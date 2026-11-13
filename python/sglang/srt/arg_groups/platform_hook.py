@@ -363,3 +363,16 @@ def handle_hpu_backends(server_args: Any):
             "_handle_hpu_backends",
             sampling_backend="pytorch",
         )
+
+
+def handle_musa_backends(server_args: Any):
+    cfg = resolving_view(server_args)
+    if cfg.device == "musa" and cfg.sampling_backend is None:
+        # has_flashinfer requires is_cuda(), so the global sampling default
+        # falls to "pytorch" here; the "flashinfer" path runs through
+        # sgl_kernel on MUSA.
+        declare_resolution(
+            server_args,
+            "_handle_musa_backends",
+            sampling_backend="flashinfer",
+        )

@@ -207,6 +207,7 @@ def run_resolution_pipeline(server_args: Any) -> None:
         handle_cpu_backends,
         handle_hpu_backends,
         handle_mps_backends,
+        handle_musa_backends,
         handle_nccl_pre_warm,
         handle_npu_backends,
         handle_platform_defaults,
@@ -221,6 +222,9 @@ def run_resolution_pipeline(server_args: Any) -> None:
     run_hook(handle_mps_backends, server_args)
     run_hook(handle_xpu_backends, server_args)
     run_hook(handle_sail_backends, server_args)
+    # Must precede _sampling_backend_default: its has_flashinfer probe is
+    # CUDA-only, so the MUSA default is declared here instead.
+    run_hook(handle_musa_backends, server_args)
     # Must precede handle_gpu_memory_settings: its symm-mem prealloc default
     # keys off enable_symm_mem.
     run_hook(handle_symm_mem_device_support, server_args)

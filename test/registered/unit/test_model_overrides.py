@@ -4572,5 +4572,38 @@ class TestDeterministicAttentionBackendOnXpu(unittest.TestCase):
         self.assertEqual(updates, {})
 
 
+class TestMusaSamplingBackendDefault(unittest.TestCase):
+    """MUSA must not inherit the CUDA-gated "pytorch" sampling fallback.
+
+    The global sampling default keys off has_flashinfer, which requires
+    is_cuda(), so a MUSA server silently landed on the pytorch sampler even
+    though the "flashinfer" path runs there through sgl_kernel. The
+    explicit-backend case guards the other direction: declaring the default
+    must not override a backend the user named.
+    """
+
+    @staticmethod
+    def _run_hook(**overrides):
+        from sglang.srt.arg_groups.platform_hook import handle_musa_backends
+
+        args = SimpleNamespace(
+            **{"device": "musa", "sampling_backend": None, **overrides}
+        )
+        handle_musa_backends(args)
+        return getattr(args, "_resolved_overrides", [])
+
+    def test_musa_declares_flashinfer(self):
+        self.assertEqual(
+            self._run_hook(),
+            [("_handle_musa_backends", {"sampling_backend": "flashinfer"})],
+        )
+
+    def test_musa_keeps_explicit_backend(self):
+        self.assertEqual(self._run_hook(sampling_backend="pytorch"), [])
+
+    def test_non_musa_declares_nothing(self):
+        self.assertEqual(self._run_hook(device="cuda"), [])
+
+
 if __name__ == "__main__":
     unittest.main()
